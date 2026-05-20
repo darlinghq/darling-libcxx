@@ -1,9 +1,15 @@
 project(libcxx)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc -std=c++11 -fvisibility=hidden -fvisibility-inlines-hidden")
+# DARLING: bumped from llvmorg-13.0.1 to llvmorg-15.0.7 to bring in
+# __libcpp_verbose_abort and other macOS 14-vintage ABI symbols that
+# modern CLT clang/swift binaries bind against. Requires -std=c++20 because
+# several LLVM 15 sources use C++20 features (concepts, std::ranges helpers).
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc -std=c++20 -fvisibility=hidden -fvisibility-inlines-hidden")
 
 include_directories(
 	BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include
+	# LLVM 15 sources (charconv.cpp etc.) include "include/ryu/ryu.h" relative to libcxx/src.
+	${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 add_definitions(-D_LIBCPP_BUILDING_LIBRARY=1 -DLIBCXX_BUILDING_LIBCXXABI=1)
@@ -27,6 +33,8 @@ set(cxx_sources
 	src/ios.cpp
 	src/ios.instantiations.cpp
 	src/iostream.cpp
+	src/legacy_debug_handler.cpp
+	src/legacy_pointer_safety.cpp
 	src/locale.cpp
 	src/memory.cpp
 	src/mutex.cpp
@@ -36,6 +44,9 @@ set(cxx_sources
 	src/random.cpp
 	src/random_shuffle.cpp
 	src/regex.cpp
+	src/ryu/d2fixed.cpp
+	src/ryu/d2s.cpp
+	src/ryu/f2s.cpp
 	src/shared_mutex.cpp
 	src/stdexcept.cpp
 	src/string.cpp
@@ -47,6 +58,7 @@ set(cxx_sources
 	src/valarray.cpp
 	src/variant.cpp
 	src/vector.cpp
+	src/verbose_abort.cpp
 )
 
 add_darling_object_library(cxx_obj ${cxx_sources})
