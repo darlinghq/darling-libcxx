@@ -47,6 +47,15 @@ set(cxx_sources
 	src/valarray.cpp
 	src/variant.cpp
 	src/vector.cpp
+	src/filesystem/directory_iterator.cpp
+	src/filesystem/operations.cpp
+)
+
+# std::filesystem needs C++17; macOS has shipped it in libc++.1.dylib since 10.15
+set_source_files_properties(
+	src/filesystem/directory_iterator.cpp
+	src/filesystem/operations.cpp
+	PROPERTIES COMPILE_OPTIONS "-std=c++17"
 )
 
 add_darling_object_library(cxx_obj ${cxx_sources})
