@@ -5,15 +5,22 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
+//
+// DARLING: hand-generated for libcxx 15.0.7. All optional features left
+// disabled (matches Apple's vanilla libc++.dylib build). The previous Darling
+// __config_site (LLVM 13) is preserved in the git history if any of these
+// need to be flipped on later.
 
-#ifndef _LIBCPP_CONFIG_SITE
-#define _LIBCPP_CONFIG_SITE
+#ifndef _LIBCPP___CONFIG_SITE
+#define _LIBCPP___CONFIG_SITE
 
 /* #undef _LIBCPP_ABI_VERSION */
-/* #undef _LIBCPP_ABI_UNSTABLE */
+/* DARLING: matches Apple's libc++.dylib — inline namespace `__1` so that
+ * symbol mangling produces `std::__1::*` which is the Apple ABI; otherwise
+ * Apple-built binaries cannot bind against our libc++ exports. */
+#define _LIBCPP_ABI_NAMESPACE __1
 /* #undef _LIBCPP_ABI_FORCE_ITANIUM */
 /* #undef _LIBCPP_ABI_FORCE_MICROSOFT */
-/* #undef _LIBCPP_HIDE_FROM_ABI_PER_TU_BY_DEFAULT */
 /* #undef _LIBCPP_HAS_NO_THREADS */
 /* #undef _LIBCPP_HAS_NO_MONOTONIC_CLOCK */
 /* #undef _LIBCPP_HAS_MUSL_LIBC */
@@ -25,16 +32,12 @@
 /* #undef _LIBCPP_HAS_NO_VENDOR_AVAILABILITY_ANNOTATIONS */
 /* #undef _LIBCPP_NO_VCRUNTIME */
 /* #undef _LIBCPP_TYPEINFO_COMPARISON_IMPLEMENTATION */
-/* #undef _LIBCPP_ABI_NAMESPACE */
 /* #undef _LIBCPP_HAS_NO_FILESYSTEM_LIBRARY */
 /* #undef _LIBCPP_HAS_PARALLEL_ALGORITHMS */
 /* #undef _LIBCPP_HAS_NO_RANDOM_DEVICE */
 /* #undef _LIBCPP_HAS_NO_LOCALIZATION */
 /* #undef _LIBCPP_HAS_NO_WIDE_CHARACTERS */
-/* #undef _LIBCPP_HAS_NO_INCOMPLETE_FORMAT */
-/* #undef _LIBCPP_HAS_NO_INCOMPLETE_RANGES */
+#define _LIBCPP_ENABLE_ASSERTIONS_DEFAULT 0
+/* #undef _LIBCPP_ENABLE_DEBUG_MODE */
 
-
-
-
-#endif // _LIBCPP_CONFIG_SITE
+#endif // _LIBCPP___CONFIG_SITE
