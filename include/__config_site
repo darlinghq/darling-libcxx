@@ -14,7 +14,12 @@
 #ifndef _LIBCPP___CONFIG_SITE
 #define _LIBCPP___CONFIG_SITE
 
-/* #undef _LIBCPP_ABI_VERSION */
+/* DARLING: ABI version 1, as in Apple's libc++.dylib. With the macro left
+ * undefined the legacy out-of-line copies of now-inline functions
+ * (e.g. __shared_weak_count::__add_shared, std::__1::error_category
+ * members) are not compiled into the dylib, and binaries built against
+ * older libc++ headers fail to bind. */
+#define _LIBCPP_ABI_VERSION 1
 /* DARLING: matches Apple's libc++.dylib — inline namespace `__1` so that
  * symbol mangling produces `std::__1::*` which is the Apple ABI; otherwise
  * Apple-built binaries cannot bind against our libc++ exports. */
