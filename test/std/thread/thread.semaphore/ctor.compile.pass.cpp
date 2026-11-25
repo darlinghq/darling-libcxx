@@ -6,8 +6,11 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// UNSUPPORTED: libcpp-has-no-threads
+// UNSUPPORTED: no-threads
 // UNSUPPORTED: c++03, c++11
+
+// Until we drop support for the synchronization library in C++11/14/17
+// ADDITIONAL_COMPILE_FLAGS: -D_LIBCPP_DISABLE_DEPRECATION_WARNINGS
 
 // <semaphore>
 
@@ -27,5 +30,5 @@ static_assert(!std::is_convertible<int, std::counting_semaphore<>>::value, "");
 #if TEST_STD_VER > 17
 // Test constexpr-constructibility. (But not destructibility.)
 constinit std::binary_semaphore bs(1);
-constinit std::counting_semaphore cs(1);
+constinit std::counting_semaphore<> cs(1);
 #endif

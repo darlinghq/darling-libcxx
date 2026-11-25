@@ -5,8 +5,7 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-//
-// UNSUPPORTED: libcpp-has-no-threads
+
 // UNSUPPORTED: c++03
 
 // <atomic>
@@ -26,10 +25,8 @@ struct CheckStandardLayout {
   }
 };
 
-int main(int, char**) {
+void tests() {
   TestEachIntegralType<CheckStandardLayout>()();
   TestEachFloatingPointType<CheckStandardLayout>()();
   TestEachPointerType<CheckStandardLayout>()();
-
-  return 0;
 }

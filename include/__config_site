@@ -6,10 +6,10 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// DARLING: hand-generated for libcxx 15.0.7. All optional features left
-// disabled (matches Apple's vanilla libc++.dylib build). The previous Darling
-// __config_site (LLVM 13) is preserved in the git history if any of these
-// need to be flipped on later.
+// DARLING: hand-generated from __config_site.in for libcxx 19.1.7, with the
+// settings of Apple's libc++.dylib build (libcxx/cmake/caches/Apple.cmake):
+// ABI version 1, vendor availability annotations on, libdispatch PSTL backend.
+// The time zone database and the standard library modules are not built.
 
 #ifndef _LIBCPP___CONFIG_SITE
 #define _LIBCPP___CONFIG_SITE
@@ -32,17 +32,25 @@
 /* #undef _LIBCPP_HAS_THREAD_API_PTHREAD */
 /* #undef _LIBCPP_HAS_THREAD_API_EXTERNAL */
 /* #undef _LIBCPP_HAS_THREAD_API_WIN32 */
-/* #undef _LIBCPP_HAS_THREAD_LIBRARY_EXTERNAL */
 /* #undef _LIBCPP_DISABLE_VISIBILITY_ANNOTATIONS */
 /* #undef _LIBCPP_HAS_NO_VENDOR_AVAILABILITY_ANNOTATIONS */
 /* #undef _LIBCPP_NO_VCRUNTIME */
 /* #undef _LIBCPP_TYPEINFO_COMPARISON_IMPLEMENTATION */
-/* #undef _LIBCPP_HAS_NO_FILESYSTEM_LIBRARY */
-/* #undef _LIBCPP_HAS_PARALLEL_ALGORITHMS */
+/* #undef _LIBCPP_HAS_NO_FILESYSTEM */
 /* #undef _LIBCPP_HAS_NO_RANDOM_DEVICE */
 /* #undef _LIBCPP_HAS_NO_LOCALIZATION */
+/* #undef _LIBCPP_HAS_NO_UNICODE */
 /* #undef _LIBCPP_HAS_NO_WIDE_CHARACTERS */
-#define _LIBCPP_ENABLE_ASSERTIONS_DEFAULT 0
-/* #undef _LIBCPP_ENABLE_DEBUG_MODE */
+#define _LIBCPP_HAS_NO_STD_MODULES
+#define _LIBCPP_HAS_NO_TIME_ZONE_DATABASE
+/* #undef _LIBCPP_INSTRUMENTED_WITH_ASAN */
+
+// PSTL backends
+/* #undef _LIBCPP_PSTL_BACKEND_SERIAL */
+/* #undef _LIBCPP_PSTL_BACKEND_STD_THREAD */
+#define _LIBCPP_PSTL_BACKEND_LIBDISPATCH
+
+// Hardening.
+#define _LIBCPP_HARDENING_MODE_DEFAULT _LIBCPP_HARDENING_MODE_NONE
 
 #endif // _LIBCPP___CONFIG_SITE

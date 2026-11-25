@@ -8,15 +8,11 @@
 
 // UNSUPPORTED: c++03
 
-// Before GCC 6, this trait fails. See https://stackoverflow.com/q/41799015/627587.
-// UNSUPPORTED: gcc-5
-
 // <type_traits>
 
 // __is_implicitly_default_constructible<Tp>
 
-#include <type_traits>
-
+#include <__type_traits/is_implicitly_default_constructible.h>
 
 struct ExplicitlyDefaultConstructible1 {
     explicit ExplicitlyDefaultConstructible1() = default;

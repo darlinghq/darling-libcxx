@@ -6,8 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <__memory/compressed_pair.h>
 #include <assert.h>
-#include <memory>
+#include <new>
 
 #include "test_macros.h"
 
