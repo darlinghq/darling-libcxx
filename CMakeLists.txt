@@ -1,67 +1,88 @@
 project(libcxx)
 
-# DARLING: bumped from llvmorg-13.0.1 to llvmorg-15.0.7 to bring in
-# __libcpp_verbose_abort and other macOS 14-vintage ABI symbols that
-# modern CLT clang/swift binaries bind against. Requires -std=c++20 because
-# several LLVM 15 sources use C++20 features (concepts, std::ranges helpers);
-# this supersedes the earlier c++17 bump needed for std::filesystem.
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc -std=c++20 -fvisibility=hidden -fvisibility-inlines-hidden")
+# DARLING: libcxx 19.1.7, the libc++ generation of macOS 15/26. The sources
+# are C++23 (as upstream builds them) and use libcxx/src for their private
+# headers ("include/ryu/ryu.h", "include/atomic_support.h").
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc -std=c++23 -fvisibility=hidden -fvisibility-inlines-hidden")
 
 include_directories(
 	BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include
-	# LLVM 15 sources (charconv.cpp etc.) include "include/ryu/ryu.h" relative to libcxx/src.
 	${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-add_definitions(-D_LIBCPP_BUILDING_LIBRARY=1 -DLIBCXX_BUILDING_LIBCXXABI=1)
+# The source list and definitions follow libcxx/src/CMakeLists.txt for an Apple build
+# (cmake/caches/Apple.cmake): threads, random_device, localization and filesystem on,
+# libc++abi as the ABI library and the provider of operator new/delete, no time zone database.
+add_definitions(-D_LIBCPP_BUILDING_LIBRARY=1 -DLIBCXX_BUILDING_LIBCXXABI=1 -D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES=1)
 
 set(cxx_sources
 	src/algorithm.cpp
 	src/any.cpp
-	src/atomic.cpp
-	src/barrier.cpp
 	src/bind.cpp
+	src/call_once.cpp
 	src/charconv.cpp
 	src/chrono.cpp
-	src/condition_variable.cpp
-	src/condition_variable_destructor.cpp
-	src/debug.cpp
+	src/error_category.cpp
 	src/exception.cpp
-	src/format.cpp
+	src/expected.cpp
+	src/filesystem/filesystem_clock.cpp
+	src/filesystem/filesystem_error.cpp
+	src/filesystem/path.cpp
 	src/functional.cpp
-	src/future.cpp
 	src/hash.cpp
-	src/ios.cpp
-	src/ios.instantiations.cpp
-	src/iostream.cpp
-	src/legacy_debug_handler.cpp
 	src/legacy_pointer_safety.cpp
-	src/locale.cpp
 	src/memory.cpp
-	src/mutex.cpp
-	src/mutex_destructor.cpp
-	src/new.cpp
+	src/memory_resource.cpp
+	src/new_handler.cpp
+	src/new_helpers.cpp
 	src/optional.cpp
-	src/random.cpp
+	src/print.cpp
 	src/random_shuffle.cpp
-	src/regex.cpp
 	src/ryu/d2fixed.cpp
 	src/ryu/d2s.cpp
 	src/ryu/f2s.cpp
-	src/shared_mutex.cpp
 	src/stdexcept.cpp
 	src/string.cpp
-	src/strstream.cpp
 	src/system_error.cpp
-	src/thread.cpp
 	src/typeinfo.cpp
-	src/utility.cpp
 	src/valarray.cpp
 	src/variant.cpp
 	src/vector.cpp
+	src/verbose_abort.cpp
+
+	# threads
+	src/atomic.cpp
+	src/barrier.cpp
+	src/condition_variable_destructor.cpp
+	src/condition_variable.cpp
+	src/future.cpp
+	src/mutex_destructor.cpp
+	src/mutex.cpp
+	src/shared_mutex.cpp
+	src/thread.cpp
+
+	# random_device
+	src/random.cpp
+
+	# localization
+	src/fstream.cpp
+	src/ios.cpp
+	src/ios.instantiations.cpp
+	src/iostream.cpp
+	src/locale.cpp
+	src/ostream.cpp
+	src/regex.cpp
+	src/strstream.cpp
+
+	# filesystem
+	src/filesystem/directory_entry.cpp
 	src/filesystem/directory_iterator.cpp
 	src/filesystem/operations.cpp
-	src/verbose_abort.cpp
+
+	# DARLING: symbols that older releases of the dylib exported
+	src/darling/legacy_debug.cpp
+	src/darling/legacy_exports.cpp
+	src/darling/legacy_format_error.cpp
 )
 
 add_darling_object_library(cxx_obj ${cxx_sources})

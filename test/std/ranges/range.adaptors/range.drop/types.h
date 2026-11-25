@@ -14,105 +14,131 @@
 
 int globalBuff[8];
 
-struct ContiguousView : std::ranges::view_base {
-  int start_;
-  constexpr ContiguousView(int start = 0) : start_(start) {}
-  constexpr ContiguousView(ContiguousView&&) = default;
-  constexpr ContiguousView& operator=(ContiguousView&&) = default;
-  friend constexpr int* begin(ContiguousView& view) { return globalBuff + view.start_; }
-  friend constexpr int* begin(ContiguousView const& view) { return globalBuff + view.start_; }
-  friend constexpr int* end(ContiguousView&) { return globalBuff + 8; }
-  friend constexpr int* end(ContiguousView const&) { return globalBuff + 8; }
+template <class T>
+struct drop_sentinel {
+  T* ptr_;
+  int* num_of_sentinel_cmp_calls;
+
+public:
+  friend constexpr bool operator==(drop_sentinel const s, T* const ptr) noexcept {
+    ++(*s.num_of_sentinel_cmp_calls);
+    return {s.ptr_ == ptr};
+  }
+  friend constexpr bool operator==(T* const ptr, drop_sentinel const s) noexcept {
+    ++(*s.num_of_sentinel_cmp_calls);
+    return {s.ptr_ == ptr};
+  }
+  friend constexpr bool operator!=(drop_sentinel const s, T* const ptr) noexcept { return !(s == ptr); }
+  friend constexpr bool operator!=(T* const ptr, drop_sentinel const s) noexcept { return !(s == ptr); }
 };
+
+template <bool IsSimple>
+struct MaybeSimpleNonCommonView : std::ranges::view_base {
+  int start_;
+  int* num_of_sentinel_cmp_calls;
+  constexpr std::size_t size() const { return 8; }
+  constexpr int* begin() { return globalBuff + start_; }
+  constexpr std::conditional_t<IsSimple, int*, const int*> begin() const { return globalBuff + start_; }
+  constexpr drop_sentinel<int> end() { return drop_sentinel<int>{globalBuff + size(), num_of_sentinel_cmp_calls}; }
+  constexpr auto end() const {
+    return std::conditional_t<IsSimple, drop_sentinel<int>, drop_sentinel<const int>>{
+        globalBuff + size(), num_of_sentinel_cmp_calls};
+  }
+};
+
+struct MoveOnlyView : std::ranges::view_base {
+  int start_;
+  constexpr explicit MoveOnlyView(int start = 0) : start_(start) {}
+  constexpr MoveOnlyView(MoveOnlyView&&) = default;
+  constexpr MoveOnlyView& operator=(MoveOnlyView&&) = default;
+  constexpr int *begin() const { return globalBuff + start_; }
+  constexpr int *end() const { return globalBuff + 8; }
+};
+static_assert( std::ranges::view<MoveOnlyView>);
+static_assert( std::ranges::contiguous_range<MoveOnlyView>);
+static_assert(!std::copyable<MoveOnlyView>);
 
 struct CopyableView : std::ranges::view_base {
   int start_;
-  constexpr CopyableView(int start = 0) : start_(start) {}
+  constexpr explicit CopyableView(int start = 0) : start_(start) {}
   constexpr CopyableView(CopyableView const&) = default;
   constexpr CopyableView& operator=(CopyableView const&) = default;
-  friend constexpr int* begin(CopyableView& view) { return globalBuff + view.start_; }
-  friend constexpr int* begin(CopyableView const& view) { return globalBuff + view.start_; }
-  friend constexpr int* end(CopyableView&) { return globalBuff + 8; }
-  friend constexpr int* end(CopyableView const&) { return globalBuff + 8; }
+  constexpr int *begin() const { return globalBuff + start_; }
+  constexpr int *end() const { return globalBuff + 8; }
 };
 
 using ForwardIter = forward_iterator<int*>;
 struct ForwardView : std::ranges::view_base {
-  constexpr ForwardView() = default;
+  constexpr explicit ForwardView() = default;
   constexpr ForwardView(ForwardView&&) = default;
   constexpr ForwardView& operator=(ForwardView&&) = default;
-  friend constexpr ForwardIter begin(ForwardView&) { return ForwardIter(globalBuff); }
-  friend constexpr ForwardIter begin(ForwardView const&) { return ForwardIter(globalBuff); }
-  friend constexpr ForwardIter end(ForwardView&) { return ForwardIter(globalBuff + 8); }
-  friend constexpr ForwardIter end(ForwardView const&) { return ForwardIter(globalBuff + 8); }
+  constexpr forward_iterator<int*> begin() const { return forward_iterator<int*>(globalBuff); }
+  constexpr forward_iterator<int*> end() const { return forward_iterator<int*>(globalBuff + 8); }
 };
 
 struct ForwardRange {
   ForwardIter begin() const;
   ForwardIter end() const;
-  ForwardIter begin();
-  ForwardIter end();
 };
 
 struct ThrowingDefaultCtorForwardView : std::ranges::view_base {
   ThrowingDefaultCtorForwardView() noexcept(false);
   ForwardIter begin() const;
   ForwardIter end() const;
-  ForwardIter begin();
-  ForwardIter end();
 };
 
 struct NoDefaultCtorForwardView : std::ranges::view_base {
   NoDefaultCtorForwardView() = delete;
   ForwardIter begin() const;
   ForwardIter end() const;
-  ForwardIter begin();
-  ForwardIter end();
 };
 
 struct BorrowableRange {
-  friend int* begin(BorrowableRange const& range);
-  friend int* end(BorrowableRange const&);
-  friend int* begin(BorrowableRange& range);
-  friend int* end(BorrowableRange&);
+  int *begin() const;
+  int *end() const;
 };
-
 template<>
 inline constexpr bool std::ranges::enable_borrowed_range<BorrowableRange> = true;
 
 struct BorrowableView : std::ranges::view_base {
-  friend int* begin(BorrowableView const& range);
-  friend int* end(BorrowableView const&);
-  friend int* begin(BorrowableView& range);
-  friend int* end(BorrowableView&);
+  int *begin() const;
+  int *end() const;
 };
-
 template<>
 inline constexpr bool std::ranges::enable_borrowed_range<BorrowableView> = true;
 
 struct InputView : std::ranges::view_base {
   constexpr cpp20_input_iterator<int*> begin() const { return cpp20_input_iterator<int*>(globalBuff); }
   constexpr int* end() const { return globalBuff + 8; }
-  constexpr cpp20_input_iterator<int*> begin() { return cpp20_input_iterator<int*>(globalBuff); }
-  constexpr int* end() { return globalBuff + 8; }
 };
-
-constexpr bool operator==(const cpp20_input_iterator<int*> &lhs, int* rhs) { return lhs.base() == rhs; }
-constexpr bool operator==(int* lhs, const cpp20_input_iterator<int*> &rhs) { return rhs.base() == lhs; }
+// TODO: remove these bogus operators
+constexpr bool operator==(const cpp20_input_iterator<int*> &lhs, int* rhs) { return base(lhs) == rhs; }
+constexpr bool operator==(int* lhs, const cpp20_input_iterator<int*> &rhs) { return base(rhs) == lhs; }
 
 struct Range {
-  friend int* begin(Range const&);
-  friend int* end(Range const&);
-  friend int* begin(Range&);
-  friend int* end(Range&);
+  int *begin() const;
+  int *end() const;
 };
 
-using CountedIter = stride_counting_iterator<forward_iterator<int*>>;
+using CountedIter = operation_counting_iterator<forward_iterator<int*>>;
 struct CountedView : std::ranges::view_base {
-  constexpr CountedIter begin() { return CountedIter(ForwardIter(globalBuff)); }
-  constexpr CountedIter begin() const { return CountedIter(ForwardIter(globalBuff)); }
-  constexpr CountedIter end() { return CountedIter(ForwardIter(globalBuff + 8)); }
-  constexpr CountedIter end() const { return CountedIter(ForwardIter(globalBuff + 8)); }
+  explicit constexpr CountedView(IteratorOpCounts* opcounts) noexcept : opcounts_(opcounts) {}
+  constexpr CountedIter begin() const { return CountedIter(ForwardIter(globalBuff), opcounts_); }
+  constexpr CountedIter end() const { return CountedIter(ForwardIter(globalBuff + 8), opcounts_); }
+
+private:
+  IteratorOpCounts* opcounts_;
+};
+
+struct View : std::ranges::view_base {
+  constexpr explicit View(int* b, int* e) : begin_(b), end_(e) { }
+
+  constexpr int* begin() const { return begin_; }
+  constexpr int* end() const { return end_; }
+
+private:
+  int* begin_;
+  int* end_;
 };
 
 #endif // TEST_STD_RANGES_RANGE_ADAPTORS_RANGE_DROP_TYPES_H

@@ -8,19 +8,21 @@
 
 // <stack>
 // UNSUPPORTED: c++03, c++11, c++14
-// UNSUPPORTED: clang-5, apple-clang-9
-// UNSUPPORTED: libcpp-no-deduction-guides
-// Clang 5 will generate bad implicit deduction guides
-//	Specifically, for the copy constructor.
-
 
 // template<class Container>
 //   stack(Container) -> stack<typename Container::value_type, Container>;
 //
 // template<class Container, class Allocator>
 //   stack(Container, Allocator) -> stack<typename Container::value_type, Container>;
+//
+// template<ranges::input_range R>
+//   stack(from_range_t, R&&) -> stack<ranges::range_value_t<R>>; // since C++23
+//
+// template<ranges::input_range R, class Allocator>
+//   stack(from_range_t, R&&, Allocator)
+//     -> stack<ranges::range_value_t<R>, deque<ranges::range_value_t<R>, Allocator>>; // since C++23
 
-
+#include <array>
 #include <stack>
 #include <deque>
 #include <vector>
@@ -30,6 +32,7 @@
 #include <cstddef>
 #include <climits> // INT_MAX
 
+#include "deduction_guides_sfinae_checks.h"
 #include "test_macros.h"
 #include "test_iterators.h"
 #include "test_allocator.h"
@@ -140,6 +143,37 @@ int main(int, char**)
         static_assert(std::is_same_v<decltype(stk), std::stack<T, Cont>>);
         }
     }
+
+#if TEST_STD_VER >= 23
+    {
+        typedef short T;
+        typedef test_allocator<T> Alloc;
+        std::list<T> a;
+        {
+        std::stack s(a.begin(), a.end());
+        static_assert(std::is_same_v<decltype(s), std::stack<T>>);
+        }
+        {
+        std::stack s(a.begin(), a.end(), Alloc());
+        static_assert(std::is_same_v<decltype(s), std::stack<T, std::deque<T, Alloc>>>);
+        }
+    }
+
+    {
+      {
+        std::stack c(std::from_range, std::array<int, 0>());
+        static_assert(std::is_same_v<decltype(c), std::stack<int>>);
+      }
+
+      {
+        using Alloc = test_allocator<int>;
+        std::stack c(std::from_range, std::array<int, 0>(), Alloc());
+        static_assert(std::is_same_v<decltype(c), std::stack<int, std::deque<int, Alloc>>>);
+      }
+    }
+#endif
+
+    ContainerAdaptorDeductionGuidesSfinaeAway<std::stack, std::stack<int>>();
 
     return 0;
 }

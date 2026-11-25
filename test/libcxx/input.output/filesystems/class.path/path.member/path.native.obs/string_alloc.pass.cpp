@@ -6,10 +6,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: c++03
+// UNSUPPORTED: c++03, c++11, c++14
+// UNSUPPORTED: availability-filesystem-missing
 
 // These tests require locale for non-char paths
-// UNSUPPORTED: libcpp-has-no-localization
+// UNSUPPORTED: no-localization
 
 // <filesystem>
 
@@ -20,16 +21,16 @@
 // basic_string<ECharT, Traits, Allocator>
 // string(const Allocator& a = Allocator()) const;
 
-#include "filesystem_include.h"
+#include <filesystem>
 #include <type_traits>
 #include <cassert>
 
-#include "test_macros.h"
-#include "test_iterators.h"
 #include "count_new.h"
+#include "make_string.h"
 #include "min_allocator.h"
-#include "filesystem_test_helper.h"
-
+#include "test_iterators.h"
+#include "test_macros.h"
+namespace fs = std::filesystem;
 
 // the SSO is always triggered for strings of size 2.
 MultiStringType shortString = MKSTR("a");
@@ -146,7 +147,9 @@ int main(int, char**)
   {
     auto const& S = shortString;
     doShortStringTest<char>(S);
+#ifndef TEST_HAS_NO_WIDE_CHARACTERS
     doShortStringTest<wchar_t>(S);
+#endif
     doShortStringTest<char16_t>(S);
     doShortStringTest<char32_t>(S);
 #if TEST_STD_VER > 17 && defined(__cpp_lib_char8_t)
@@ -156,7 +159,9 @@ int main(int, char**)
   {
     auto const& S = longString;
     doLongStringTest<char>(S);
+#ifndef TEST_HAS_NO_WIDE_CHARACTERS
     doLongStringTest<wchar_t>(S);
+#endif
     doLongStringTest<char16_t>(S);
     doLongStringTest<char32_t>(S);
 #if TEST_STD_VER > 17 && defined(__cpp_lib_char8_t)

@@ -8,25 +8,28 @@
 
 // <queue>
 // UNSUPPORTED: c++03, c++11, c++14
-// UNSUPPORTED: clang-5, apple-clang-9
-// UNSUPPORTED: libcpp-no-deduction-guides
-// Clang 5 will generate bad implicit deduction guides
-//  Specifically, for the copy constructor.
 
 // template<class Container>
 //   queue(Container) -> queue<typename Container::value_type, Container>;
 //
 // template<class Container, class Allocator>
 //   queue(Container, Allocator) -> queue<typename Container::value_type, Container>;
+//
+// template<ranges::input_range R>
+//   queue(from_range_t, R&&) -> queue<ranges::range_value_t<R>>; // since C++23
+//
+// template<ranges::input_range R, class Allocator>
+//     queue(from_range_t, R&&, Allocator)
+//       -> queue<ranges::range_value_t<R>, deque<ranges::range_value_t<R>, Allocator>>; // since C++23
 
-
+#include <array>
 #include <queue>
 #include <list>
 #include <iterator>
 #include <cassert>
 #include <cstddef>
-#include <climits> // INT_MAX
 
+#include "deduction_guides_sfinae_checks.h"
 #include "test_macros.h"
 #include "test_iterators.h"
 #include "test_allocator.h"
@@ -136,6 +139,37 @@ int main(int, char**)
         static_assert(std::is_same_v<decltype(que), std::queue<T, Cont>>);
         }
     }
+
+#if TEST_STD_VER >= 23
+    {
+        typedef short T;
+        typedef test_allocator<T> Alloc;
+        std::list<T> a;
+        {
+        std::queue q(a.begin(), a.end());
+        static_assert(std::is_same_v<decltype(q), std::queue<T>>);
+        }
+        {
+        std::queue q(a.begin(), a.end(), Alloc());
+        static_assert(std::is_same_v<decltype(q), std::queue<T, std::deque<T, Alloc>>>);
+        }
+    }
+
+    {
+      {
+        std::queue c(std::from_range, std::array<int, 0>());
+        static_assert(std::is_same_v<decltype(c), std::queue<int>>);
+      }
+
+      {
+        using Alloc = test_allocator<int>;
+        std::queue c(std::from_range, std::array<int, 0>(), Alloc());
+        static_assert(std::is_same_v<decltype(c), std::queue<int, std::deque<int, Alloc>>>);
+      }
+    }
+#endif
+
+    ContainerAdaptorDeductionGuidesSfinaeAway<std::queue, std::queue<int>>();
 
     return 0;
 }

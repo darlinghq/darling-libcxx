@@ -8,21 +8,24 @@
 
 // <forward_list>
 // UNSUPPORTED: c++03, c++11, c++14
-// UNSUPPORTED: libcpp-no-deduction-guides
-
 
 // template <class InputIterator, class Allocator = allocator<typename iterator_traits<InputIterator>::value_type>>
 //    forward_list(InputIterator, InputIterator, Allocator = Allocator())
 //    -> forward_list<typename iterator_traits<InputIterator>::value_type, Allocator>;
 //
+// template<ranges::input_range R, class Allocator = allocator<ranges::range_value_t<R>>>
+//   forward_list(from_range_t, R&&, Allocator = Allocator())
+//       -> forward_list<ranges::range_value_t<R>, Allocator>; // C++23
 
-
+#include <algorithm>
+#include <array>
 #include <forward_list>
 #include <iterator>
 #include <cassert>
 #include <cstddef>
 #include <climits> // INT_MAX
 
+#include "deduction_guides_sfinae_checks.h"
 #include "test_macros.h"
 #include "test_iterators.h"
 #include "test_allocator.h"
@@ -128,6 +131,23 @@ int main(int, char**)
         static_assert(std::is_same_v<decltype(fwl), decltype(source)>);
         }
     }
+
+#if TEST_STD_VER >= 23
+    {
+      {
+        std::forward_list c(std::from_range, std::array<int, 0>());
+        static_assert(std::is_same_v<decltype(c), std::forward_list<int>>);
+      }
+
+      {
+        using Alloc = test_allocator<int>;
+        std::forward_list c(std::from_range, std::array<int, 0>(), Alloc());
+        static_assert(std::is_same_v<decltype(c), std::forward_list<int, Alloc>>);
+      }
+    }
+#endif
+
+    SequenceContainerDeductionGuidesSfinaeAway<std::forward_list, std::forward_list<int>>();
 
     return 0;
 }

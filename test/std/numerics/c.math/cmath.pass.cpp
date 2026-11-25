@@ -6,16 +6,23 @@
 //
 //===----------------------------------------------------------------------===//
 
+// This test fails because Clang no longer enables -fdelayed-template-parsing
+// by default on Windows with C++20 (#69431).
+// XFAIL: msvc && (clang-18 || clang-19)
+
 // <cmath>
 
+#include <array>
 #include <cmath>
 #include <limits>
 #include <type_traits>
 #include <cassert>
 
+#include "fp_compare.h"
 #include "test_macros.h"
 #include "hexfloat.h"
 #include "truncate_fp.h"
+#include "type_algorithms.h"
 
 // convertible to int/float/double/etc
 template <class T, int N=0>
@@ -80,6 +87,7 @@ Ambiguous fmin(Ambiguous, Ambiguous){ return Ambiguous(); }
 Ambiguous hypot(Ambiguous, Ambiguous){ return Ambiguous(); }
 Ambiguous hypot(Ambiguous, Ambiguous, Ambiguous){ return Ambiguous(); }
 Ambiguous ilogb(Ambiguous){ return Ambiguous(); }
+Ambiguous lerp(Ambiguous, Ambiguous, Ambiguous){ return Ambiguous(); }
 Ambiguous lgamma(Ambiguous){ return Ambiguous(); }
 Ambiguous llrint(Ambiguous){ return Ambiguous(); }
 Ambiguous llround(Ambiguous){ return Ambiguous(); }
@@ -108,43 +116,35 @@ std::false_type has_abs_imp(...);
 template <class T>
 struct has_abs : decltype(has_abs_imp<T>(0)) {};
 
-void test_abs() {
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wabsolute-value"
-#endif
-  static_assert((std::is_same<decltype(std::abs((float)0)), float>::value), "");
-  static_assert((std::is_same<decltype(std::abs((double)0)), double>::value), "");
-  static_assert(
-      (std::is_same<decltype(std::abs((long double)0)), long double>::value), "");
-  static_assert((std::is_same<decltype(std::abs((int)0)), int>::value), "");
-  static_assert((std::is_same<decltype(std::abs((long)0)), long>::value), "");
-  static_assert((std::is_same<decltype(std::abs((long long)0)), long long>::value),
-                "");
-  static_assert((std::is_same<decltype(std::abs((unsigned char)0)), int>::value),
-                "");
-  static_assert((std::is_same<decltype(std::abs((unsigned short)0)), int>::value),
-                "");
-  static_assert((std::is_same<decltype(std::abs((signed char)0)), int>::value),
-                "");
-  static_assert((std::is_same<decltype(std::abs((short)0)), int>::value),
-                "");
-  static_assert((std::is_same<decltype(std::abs((unsigned char)0)), int>::value),
-                "");
-  static_assert((std::is_same<decltype(std::abs((char)0)), int>::value),
-                "");
-  static_assert((std::is_same<decltype(abs(Ambiguous())), Ambiguous>::value), "");
+void test_abs()
+{
+    // See also "abs.pass.cpp"
 
-  static_assert(!has_abs<unsigned>::value, "");
-  static_assert(!has_abs<unsigned long>::value, "");
-  static_assert(!has_abs<unsigned long long>::value, "");
-  static_assert(!has_abs<size_t>::value, "");
+    TEST_DIAGNOSTIC_PUSH
+    TEST_CLANG_DIAGNOSTIC_IGNORED("-Wabsolute-value")
 
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+    static_assert((std::is_same<decltype(std::abs((float)0)), float>::value), "");
+    static_assert((std::is_same<decltype(std::abs((double)0)), double>::value), "");
+    static_assert((std::is_same<decltype(std::abs((long double)0)), long double>::value), "");
+    static_assert((std::is_same<decltype(std::abs((int)0)), int>::value), "");
+    static_assert((std::is_same<decltype(std::abs((long)0)), long>::value), "");
+    static_assert((std::is_same<decltype(std::abs((long long)0)), long long>::value), "");
+    static_assert((std::is_same<decltype(std::abs((unsigned char)0)), int>::value), "");
+    static_assert((std::is_same<decltype(std::abs((unsigned short)0)), int>::value), "");
+    static_assert((std::is_same<decltype(std::abs((signed char)0)), int>::value), "");
+    static_assert((std::is_same<decltype(std::abs((short)0)), int>::value), "");
+    static_assert((std::is_same<decltype(std::abs((unsigned char)0)), int>::value), "");
+    static_assert((std::is_same<decltype(std::abs((char)0)), int>::value), "");
+    static_assert((std::is_same<decltype(abs(Ambiguous())), Ambiguous>::value), "");
 
-  assert(std::abs(-1.) == 1);
+    static_assert(!has_abs<unsigned>::value, "");
+    static_assert(!has_abs<unsigned long>::value, "");
+    static_assert(!has_abs<unsigned long long>::value, "");
+    static_assert(!has_abs<std::size_t>::value, "");
+
+    TEST_DIAGNOSTIC_POP
+
+    assert(std::abs(-1.) == 1);
 }
 
 
@@ -610,12 +610,20 @@ void test_fpclassify()
     static_assert((std::is_same<decltype(std::fpclassify(0)), int>::value), "");
     static_assert((std::is_same<decltype(std::fpclassify((long double)0)), int>::value), "");
     static_assert((std::is_same<decltype(fpclassify(Ambiguous())), Ambiguous>::value), "");
+    static_assert((std::is_same<decltype(fpclassify(Value<float>())), int>::value), "");
+    static_assert((std::is_same<decltype(fpclassify(Value<double>())), int>::value), "");
+    static_assert((std::is_same<decltype(fpclassify(Value<long double>())), int>::value), "");
+    ASSERT_NOEXCEPT(std::fpclassify((float)0));
+    ASSERT_NOEXCEPT(std::fpclassify((double)0));
+    ASSERT_NOEXCEPT(std::fpclassify((long double)0));
+    ASSERT_NOEXCEPT(std::fpclassify(0));
     assert(std::fpclassify(-1.0) == FP_NORMAL);
     assert(std::fpclassify(0) == FP_ZERO);
     assert(std::fpclassify(1) == FP_NORMAL);
     assert(std::fpclassify(-1) == FP_NORMAL);
     assert(std::fpclassify(std::numeric_limits<int>::max()) == FP_NORMAL);
     assert(std::fpclassify(std::numeric_limits<int>::min()) == FP_NORMAL);
+    assert(std::fpclassify(Value<double, 1>()) == FP_NORMAL);
 }
 
 void test_isfinite()
@@ -1108,6 +1116,56 @@ void test_fmin()
     assert(std::fmin(1,0) == 0);
 }
 
+#if TEST_STD_VER >= 17
+struct TestHypot3 {
+  template <class Real>
+  void operator()() const {
+    const auto check = [](Real elem, Real abs_tol) {
+      assert(std::isfinite(std::hypot(elem, Real(0), Real(0))));
+      assert(fptest_close(std::hypot(elem, Real(0), Real(0)), elem, abs_tol));
+      assert(std::isfinite(std::hypot(elem, elem, Real(0))));
+      assert(fptest_close(std::hypot(elem, elem, Real(0)), std::sqrt(Real(2)) * elem, abs_tol));
+      assert(std::isfinite(std::hypot(elem, elem, elem)));
+      assert(fptest_close(std::hypot(elem, elem, elem), std::sqrt(Real(3)) * elem, abs_tol));
+    };
+
+    { // check for overflow
+      const auto [elem, abs_tol] = []() -> std::array<Real, 2> {
+        if constexpr (std::is_same_v<Real, float>)
+          return {1e20f, 1e16f};
+        else if constexpr (std::is_same_v<Real, double>)
+          return {1e300, 1e287};
+        else { // long double
+#  if __DBL_MAX_EXP__ == __LDBL_MAX_EXP__
+          return {1e300l, 1e287l}; // 64-bit
+#  else
+          return {1e4000l, 1e3985l}; // 80- or 128-bit
+#  endif
+        }
+      }();
+      check(elem, abs_tol);
+    }
+
+    { // check for underflow
+      const auto [elem, abs_tol] = []() -> std::array<Real, 2> {
+        if constexpr (std::is_same_v<Real, float>)
+          return {1e-20f, 1e-24f};
+        else if constexpr (std::is_same_v<Real, double>)
+          return {1e-287, 1e-300};
+        else { // long double
+#  if __DBL_MAX_EXP__ == __LDBL_MAX_EXP__
+          return {1e-287l, 1e-300l}; // 64-bit
+#  else
+          return {1e-3985l, 1e-4000l}; // 80- or 128-bit
+#  endif
+        }
+      }();
+      check(elem, abs_tol);
+    }
+  }
+};
+#endif
+
 void test_hypot()
 {
     static_assert((std::is_same<decltype(std::hypot((float)0, (float)0)), float>::value), "");
@@ -1130,26 +1188,31 @@ void test_hypot()
     static_assert((std::is_same<decltype(hypot(Ambiguous(), Ambiguous())), Ambiguous>::value), "");
     assert(std::hypot(3,4) == 5);
 
-#if TEST_STD_VER > 14
-    static_assert((std::is_same<decltype(std::hypot((float)0, (float)0, (float)0)), float>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (bool)0, (float)0)), double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (unsigned short)0, (double)0)), double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (int)0, (long double)0)), long double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (unsigned int)0)), double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (double)0, (long)0)), double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (long double)0, (unsigned long)0)), long double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (int)0, (long long)0)), double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (int)0, (unsigned long long)0)), double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (double)0, (double)0)), double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (long double)0, (long double)0)), long double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (float)0, (double)0)), double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (float)0, (long double)0)), long double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((float)0, (double)0, (long double)0)), long double>::value), "");
-    static_assert((std::is_same<decltype(std::hypot((int)0, (int)0, (int)0)), double>::value), "");
-    static_assert((std::is_same<decltype(hypot(Ambiguous(), Ambiguous(), Ambiguous())), Ambiguous>::value), "");
+#if TEST_STD_VER >= 17
+    // clang-format off
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (float)0,          (float)0)),              float>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (bool)0,           (float)0)),              double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (unsigned short)0, (double)0)),             double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (int)0,            (long double)0)),        long double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (double)0,         (long)0)),               double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (long double)0,    (unsigned long)0)),      long double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (int)0,            (long long)0)),          double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (int)0,            (unsigned long long)0)), double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (double)0,         (double)0)),             double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (long double)0,    (long double)0)),        long double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (float)0,          (double)0)),             double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (float)0,          (long double)0)),        long double>));
+    static_assert((std::is_same_v<decltype(std::hypot((float)0, (double)0,         (long double)0)),        long double>));
+    static_assert((std::is_same_v<decltype(std::hypot((int)0,   (int)0,            (int)0)),                double>));
+    static_assert((std::is_same_v<decltype(hypot(Ambiguous(), Ambiguous(), Ambiguous())), Ambiguous>));
+    // clang-format on
 
     assert(std::hypot(2,3,6) == 7);
     assert(std::hypot(1,4,8) == 9);
+
+    // Check for undue over-/underflows of intermediate results.
+    // See discussion at https://github.com/llvm/llvm-project/issues/92782.
+    types::for_each(types::floating_point_types(), TestHypot3());
 #endif
 }
 
@@ -1170,6 +1233,36 @@ void test_ilogb()
     static_assert((std::is_same<decltype(std::ilogbl(0)), int>::value), "");
     static_assert((std::is_same<decltype(ilogb(Ambiguous())), Ambiguous>::value), "");
     assert(std::ilogb(1) == 0);
+}
+
+void test_lerp()
+{
+    // See also "lerp.pass.cpp"
+
+#if TEST_STD_VER > 17
+    static_assert((std::is_same<decltype(std::lerp((float)0, (float)0, (float)0)), float>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (bool)0, (float)0)), double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (unsigned short)0, (double)0)), double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (int)0, (long double)0)), long double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (double)0, (long)0)), double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (long double)0, (unsigned long)0)), long double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (int)0, (long long)0)), double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (int)0, (unsigned long long)0)), double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (double)0, (double)0)), double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (long double)0, (long double)0)), long double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (float)0, (double)0)), double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (float)0, (long double)0)), long double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((float)0, (double)0, (long double)0)), long double>::value), "");
+    static_assert((std::is_same<decltype(std::lerp((int)0, (int)0, (int)0)), double>::value), "");
+    static_assert((std::is_same<decltype(lerp(Ambiguous(), Ambiguous(), Ambiguous())), Ambiguous>::value), "");
+
+    assert(std::lerp(2, 3, 1) == 3);
+    assert(std::lerp(1, 3, 0.5) == 2);
+    assert(std::lerp(0, 4.0, 0) == 0);
+    static_assert(std::lerp(2, 3, 1) == 3);
+    static_assert(std::lerp(1, 3, 0.5) == 2);
+    static_assert(std::lerp(0, 4.0, 0) == 0);
+#endif
 }
 
 void test_lgamma()
@@ -1605,6 +1698,7 @@ int main(int, char**)
     test_fmin();
     test_hypot();
     test_ilogb();
+    test_lerp();
     test_lgamma();
     test_llrint();
     test_llround();
