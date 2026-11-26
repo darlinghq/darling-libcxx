@@ -105,7 +105,12 @@ set_property(TARGET cxx APPEND_STRING PROPERTY LINK_FLAGS " \
 install(TARGETS cxx DESTINATION libexec/darling/usr/lib)
 InstallSymlink("libc++.1.dylib" "${CMAKE_INSTALL_PREFIX}/libexec/darling/usr/lib/libc++.dylib")
 
-# For dyld only
+# For dyld only. dyld runs without libSystem: as for cxxabi_static, no dlopen() for the check of libstdc++'s
+# empty string, and no library aligned allocation.
 add_darling_static_library(cxx_static SOURCES ${cxx_sources})
+target_compile_definitions(cxx_static PRIVATE
+	_LIBCPP_HAS_NO_LIBRARY_ALIGNED_ALLOCATION=1
+	_LIBCPP_DARLING_NO_GCC_EMPTY_STRING_CHECK=1
+)
 make_fat(cxx_static)
 
